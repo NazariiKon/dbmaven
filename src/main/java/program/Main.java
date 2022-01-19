@@ -21,7 +21,8 @@ public class Main {
                     "2. Створити\n" +
                     "3. Видалити\n" +
                     "4. Змінити\n" +
-                    "5. Вийти");
+                    "5. Вийти\n" +
+                    "6. Показати всі новини");
             try {
                 menu = Integer.parseInt(in.nextLine());
             }
@@ -49,6 +50,10 @@ public class Main {
                 case 5: {
                     System.out.println("Вихід!");
                     menu = 5;
+                    break;
+                }
+                case 6: {
+                    selectNews(strConn);
                     break;
                 }
                 default: {
@@ -129,6 +134,26 @@ public class Main {
         }
         catch(Exception ex) {
             System.out.println("Error connection");
+        }
+    }
+
+    private static void selectNews(String strConn)
+    {
+        try(Connection con = DriverManager.getConnection(strConn, "root", "")) {
+            System.out.println("Connection is good");
+            String query = "SELECT * FROM `news`, `categories` WHERE categoryId = `categories`.`id`;";
+            try (PreparedStatement ps = con.prepareStatement(query)) {
+                ResultSet resultSet = ps.executeQuery();
+                while (resultSet.next()) {
+                    System.out.print("{ id = " + resultSet.getInt("id") + ", ");
+                    System.out.print("name = " + resultSet.getString("name") + ", ");
+                    System.out.print("description = " + resultSet.getString("description") + ", ");
+                    System.out.println("category = " + resultSet.getString("category") + " }");
+                }
+            }
+        }
+        catch(Exception ex) {
+            System.out.println("Помилка selectNews");
         }
     }
 
