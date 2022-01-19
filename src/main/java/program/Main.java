@@ -22,7 +22,8 @@ public class Main {
                     "3. Видалити\n" +
                     "4. Змінити\n" +
                     "5. Вийти\n" +
-                    "6. Показати всі новини");
+                    "6. Показати всі новини\n" +
+                    "7. Створити новину\n");
             try {
                 menu = Integer.parseInt(in.nextLine());
             }
@@ -54,6 +55,10 @@ public class Main {
                 }
                 case 6: {
                     selectNews(strConn);
+                    break;
+                }
+                case 7: {
+                    insertNews(strConn);
                     break;
                 }
                 default: {
@@ -110,6 +115,103 @@ public class Main {
         }
         catch(Exception ex) {
             System.out.println("Error connection");
+        }
+    }
+
+    private static void insertNews(String strConn)
+    {
+        try(Connection con = DriverManager.getConnection(strConn, "root", ""))
+        {
+            System.out.println("Connection is good");
+            String query = "INSERT INTO news (name, description, categoryId) " +
+                    "VALUES (?, ?, ?);";
+            try(PreparedStatement ps = con.prepareStatement(query)) {
+                String name, description, category;
+                System.out.print("Enter name: ");
+                name = in.nextLine();
+                if(name != null && !name.isEmpty())
+                    ps.setString(1, name);
+                else{
+                    System.out.println("Невірне ім'я!");
+                    return;
+                }
+
+                System.out.print("Enter description: ");
+                description = in.nextLine();
+                if(description != null && !description.isEmpty())
+                    ps.setString(2, description);
+                else {
+                    System.out.println("Невірний опис!");
+                    return;
+                }
+
+                System.out.print("Enter category: ");
+                category = in.nextLine();
+                if(category != null && !category.isEmpty())
+                {
+                    Integer categoryId = getCategoryId(category, strConn);
+                    if (categoryId == null) {
+                        insertCategory(category, strConn);
+                        categoryId = getCategoryId(category, strConn);
+                    }
+                    ps.setInt(3, categoryId);
+                }
+                else
+                {
+                    System.out.println("Невірна категорія!");
+                    return;
+                }
+
+
+                int rows = ps.executeUpdate();
+                System.out.println("Update rows: " +rows);
+            }
+            catch(Exception ex) {
+                System.out.println("error statment");
+            }
+        }
+        catch(Exception ex) {
+            System.out.println("Error connection");
+        }
+    }
+    private static Integer getCategoryId(String category, String strConn)
+    {
+        try(Connection con = DriverManager.getConnection(strConn, "root", ""))
+        {
+            System.out.println("Connection is good");
+            String query = "SELECT * FROM categories where category = ?";
+            try(PreparedStatement ps = con.prepareStatement(query)) {
+                ps.setString(1, category);
+                ResultSet resultSet = ps.executeQuery();
+                if(resultSet.next())
+                {
+                    return resultSet.getInt("id");
+                }
+            }
+            catch(Exception ex) {
+                System.out.println("Помилка!");
+            }
+        }
+        catch(Exception ex) {
+            System.out.println("Error connection");
+        }
+        return null;
+    }
+    private static void insertCategory(String category, String strConn) {
+        try(Connection con = DriverManager.getConnection(strConn, "root", "")) {
+            String query = "INSERT INTO categories(category)" +
+                    "VALUES (?);";
+            try (PreparedStatement ps = con.prepareStatement(query)) {
+                ps.setString(1, category);
+
+                int rows = ps.executeUpdate();
+                System.out.println("Категорія створенна!");
+            } catch (Exception ex) {
+                System.out.println("Помилка при створенні категорії");
+            }
+        }
+        catch(Exception ex) {
+            System.out.println("Error connect");
         }
     }
 
