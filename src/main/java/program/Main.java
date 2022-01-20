@@ -24,7 +24,9 @@ public class Main {
                     "5. Вийти\n" +
                     "6. Показати всі новини\n" +
                     "7. Створити новину\n" +
-                    "8. Видалити новину");
+                    "8. Видалити новину\n" +
+                    "9. Показати всі категорії\n" +
+                    "10. Видалити категорію");
             try {
                 menu = Integer.parseInt(in.nextLine());
             }
@@ -64,6 +66,14 @@ public class Main {
                 }
                 case 8: {
                     deleteNews(strConn);
+                    break;
+                }
+                case 9: {
+                    selectCategories(strConn);
+                    break;
+                }
+                case 10: {
+                    deleteCategory(strConn);
                     break;
                 }
                 default: {
@@ -122,9 +132,24 @@ public class Main {
             System.out.println("Error connection");
         }
     }
+    private static void insertCategory(String category, String strConn) {
+        try(Connection con = DriverManager.getConnection(strConn, "root", "")) {
+            String query = "INSERT INTO categories(category)" +
+                    "VALUES (?);";
+            try (PreparedStatement ps = con.prepareStatement(query)) {
+                ps.setString(1, category);
 
-    private static void insertNews(String strConn)
-    {
+                int rows = ps.executeUpdate();
+                System.out.println("Категорія створенна!");
+            } catch (Exception ex) {
+                System.out.println("Помилка при створенні категорії");
+            }
+        }
+        catch(Exception ex) {
+            System.out.println("Error connect");
+        }
+    }
+    private static void insertNews(String strConn) {
         try(Connection con = DriverManager.getConnection(strConn, "root", ""))
         {
             System.out.println("Connection is good");
@@ -154,10 +179,10 @@ public class Main {
                 category = in.nextLine();
                 if(category != null && !category.isEmpty())
                 {
-                    Integer categoryId = getCategoryId(category, strConn);
+                    Integer categoryId = getIdByCategory(category, strConn);
                     if (categoryId == null) {
                         insertCategory(category, strConn);
-                        categoryId = getCategoryId(category, strConn);
+                        categoryId = getIdByCategory(category, strConn);
                     }
                     ps.setInt(3, categoryId);
                 }
@@ -177,46 +202,6 @@ public class Main {
         }
         catch(Exception ex) {
             System.out.println("Error connection");
-        }
-    }
-    private static Integer getCategoryId(String category, String strConn)
-    {
-        try(Connection con = DriverManager.getConnection(strConn, "root", ""))
-        {
-            System.out.println("Connection is good");
-            String query = "SELECT * FROM categories where category = ?";
-            try(PreparedStatement ps = con.prepareStatement(query)) {
-                ps.setString(1, category);
-                ResultSet resultSet = ps.executeQuery();
-                if(resultSet.next())
-                {
-                    return resultSet.getInt("id");
-                }
-            }
-            catch(Exception ex) {
-                System.out.println("Помилка!");
-            }
-        }
-        catch(Exception ex) {
-            System.out.println("Error connection");
-        }
-        return null;
-    }
-    private static void insertCategory(String category, String strConn) {
-        try(Connection con = DriverManager.getConnection(strConn, "root", "")) {
-            String query = "INSERT INTO categories(category)" +
-                    "VALUES (?);";
-            try (PreparedStatement ps = con.prepareStatement(query)) {
-                ps.setString(1, category);
-
-                int rows = ps.executeUpdate();
-                System.out.println("Категорія створенна!");
-            } catch (Exception ex) {
-                System.out.println("Помилка при створенні категорії");
-            }
-        }
-        catch(Exception ex) {
-            System.out.println("Error connect");
         }
     }
 
@@ -243,9 +228,7 @@ public class Main {
             System.out.println("Error connection");
         }
     }
-
-    private static void selectNews(String strConn)
-    {
+    private static void selectNews(String strConn) {
         try(Connection con = DriverManager.getConnection(strConn, "root", "")) {
             System.out.println("Connection is good");
             String query = "SELECT * FROM `news`, `categories` WHERE categoryId = `categories`.`id`;";
@@ -256,6 +239,22 @@ public class Main {
                     System.out.print("name = " + resultSet.getString("name") + ", ");
                     System.out.print("description = " + resultSet.getString("description") + ", ");
                     System.out.println("category = " + resultSet.getString("category") + " }");
+                }
+            }
+        }
+        catch(Exception ex) {
+            System.out.println("Помилка selectNews");
+        }
+    }
+    private static void selectCategories(String strConn) {
+        try(Connection con = DriverManager.getConnection(strConn, "root", "")) {
+            System.out.println("Connection is good");
+            String query = "SELECT * FROM categories";
+            try (PreparedStatement ps = con.prepareStatement(query)) {
+                ResultSet resultSet = ps.executeQuery();
+                while (resultSet.next()) {
+                    System.out.print("{ id = " + resultSet.getInt("id") + ", ");
+                    System.out.println("category = " + resultSet.getString("category") + "} ");
                 }
             }
         }
@@ -291,6 +290,79 @@ public class Main {
         }
         return null;
     }
+    private static News getNewsById(String strConn, int id) {
+        try(Connection con = DriverManager.getConnection(strConn, "root", ""))
+        {
+            System.out.println("Connection is good");
+            String query = "SELECT * FROM news where id = ?";
+            try(PreparedStatement ps = con.prepareStatement(query)) {
+                ps.setInt(1, id);
+                ResultSet resultSet = ps.executeQuery();
+                if(resultSet.next())
+                {
+                    News p = new News();
+                    p.setId(resultSet.getInt("id"));
+                    p.setName(resultSet.getString("name"));
+                    p.setDescription(resultSet.getString("description"));
+                    p.setCategoryIdId(resultSet.getInt("categoryId"));
+                    return p;
+                }
+            }
+            catch(Exception ex) {
+                System.out.println("Помилка в getNewsById");
+            }
+        }
+        catch(Exception ex) {
+            System.out.println("Error connection");
+        }
+        return null;
+    }
+    private static Integer getIdByCategory(String category, String strConn) {
+        try(Connection con = DriverManager.getConnection(strConn, "root", ""))
+        {
+            System.out.println("Connection is good");
+            String query = "SELECT * FROM categories where category = ?";
+            try(PreparedStatement ps = con.prepareStatement(query)) {
+                ps.setString(1, category);
+                ResultSet resultSet = ps.executeQuery();
+                if(resultSet.next())
+                {
+                    return resultSet.getInt("id");
+                }
+            }
+            catch(Exception ex) {
+                System.out.println("Помилка!");
+            }
+        }
+        catch(Exception ex) {
+            System.out.println("Error connection");
+        }
+        return null;
+    }
+    private static String getCategoryById(int id, String strConn) {
+        try(Connection con = DriverManager.getConnection(strConn, "root", ""))
+        {
+            System.out.println("Connection is good");
+            String query = "SELECT * FROM categories WHERE id = ?";
+            try(PreparedStatement ps = con.prepareStatement(query)) {
+                ps.setInt(1, id);
+                ResultSet resultSet = ps.executeQuery();
+                if(resultSet.next())
+                {
+                    String p = resultSet.getString("category");
+                    return p;
+                }
+            }
+            catch(Exception ex) {
+                System.out.println("Помилка в getCategoryById");
+            }
+        }
+        catch(Exception ex) {
+            System.out.println("Error connection");
+        }
+        return null;
+    }
+
     private static void delete(String strConn) {
         try(Connection con = DriverManager.getConnection(strConn, "root", ""))
         {
@@ -347,33 +419,35 @@ public class Main {
             System.out.println("Error connection");
         }
     }
-    private static News getNewsById(String strConn, int id) {
+    private static void deleteCategory(String strConn) {
         try(Connection con = DriverManager.getConnection(strConn, "root", ""))
         {
             System.out.println("Connection is good");
-            String query = "SELECT * FROM news where id = ?";
+            String query = "DELETE FROM categories " +
+                    "WHERE id = ?;";
             try(PreparedStatement ps = con.prepareStatement(query)) {
-                ps.setInt(1, id);
-                ResultSet resultSet = ps.executeQuery();
-                if(resultSet.next())
-                {
-                    News p = new News();
-                    p.setId(resultSet.getInt("id"));
-                    p.setName(resultSet.getString("name"));
-                    p.setDescription(resultSet.getString("description"));
-                    p.setCategoryIdId(resultSet.getInt("categoryId"));
-                    return p;
+                int id;
+                System.out.print("Enter id: ");
+                id = Integer.parseInt(in.nextLine());
+                String category = getCategoryById(id, strConn);
+                if (category == null) {
+                    System.out.println("Такої категорії не існує!");
+                    return;
                 }
+                ps.setInt(1, id);
+
+                int rows = ps.executeUpdate();
+                System.out.println("Update rows: " +rows);
             }
             catch(Exception ex) {
-                System.out.println("Помилка в getNewsById");
+                System.out.println("Виникла помилка!");
             }
         }
         catch(Exception ex) {
             System.out.println("Error connection");
         }
-        return null;
     }
+
     private static void update(String strConn) {
         try(Connection con = DriverManager.getConnection(strConn, "root", ""))
         {
