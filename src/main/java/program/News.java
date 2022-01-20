@@ -31,11 +31,11 @@ public class News {
         this.description = description;
     }
 
-    public int getCategoryIId() {
+    public int getCategoryId() {
         return categoryId;
     }
 
-    public void setCategoryIdId(int id) {
+    public void setCategoryId(int id) {
         this.categoryId = id;
     }
 }

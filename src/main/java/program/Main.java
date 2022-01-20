@@ -26,7 +26,8 @@ public class Main {
                     "7. Створити новину\n" +
                     "8. Видалити новину\n" +
                     "9. Показати всі категорії\n" +
-                    "10. Видалити категорію");
+                    "10. Видалити категорію\n" +
+                    "11. Змінити новину");
             try {
                 menu = Integer.parseInt(in.nextLine());
             }
@@ -74,6 +75,10 @@ public class Main {
                 }
                 case 10: {
                     deleteCategory(strConn);
+                    break;
+                }
+                case 11: {
+                    updateNews(strConn);
                     break;
                 }
                 default: {
@@ -304,7 +309,7 @@ public class Main {
                     p.setId(resultSet.getInt("id"));
                     p.setName(resultSet.getString("name"));
                     p.setDescription(resultSet.getString("description"));
-                    p.setCategoryIdId(resultSet.getInt("categoryId"));
+                    p.setCategoryId(resultSet.getInt("categoryId"));
                     return p;
                 }
             }
@@ -484,6 +489,51 @@ public class Main {
                 ps.setString(1, p.getName());
                 ps.setDouble(2, p.getPrice());
                 ps.setString(3,p.getDescription());
+                ps.setInt(4, id);
+                int rows = ps.executeUpdate();
+                System.out.println("Update rows: " +rows);
+            }
+            catch(Exception ex) {
+                System.out.println("Помилка!");
+            }
+        }
+        catch(Exception ex) {
+            System.out.println("Error connection");
+        }
+    }
+    private static void updateNews(String strConn) {
+        try(Connection con = DriverManager.getConnection(strConn, "root", ""))
+        {
+            System.out.println("Connection is good");
+            String query = "UPDATE news SET name = ?, description = ?, categoryId = ? " +
+                    "WHERE id = ?;";
+            try(PreparedStatement ps = con.prepareStatement(query)) {
+                int id;
+                System.out.print("Enter id: ");
+                id = Integer.parseInt(in.nextLine());
+                News p = getNewsById(strConn, id);
+                System.out.print("Enter new name: ");
+                String tmp = in.nextLine();
+                if(tmp != null && !tmp.isEmpty())
+                    p.setName(tmp);
+
+                System.out.print("Enter new description: ");
+                tmp = in.nextLine();
+                if(tmp != null && !tmp.isEmpty())
+                    p.setDescription(tmp);
+
+                System.out.print("Enter new category: ");
+                tmp = in.nextLine();
+                if(tmp != null && !tmp.isEmpty())
+                {
+                    insertCategory(tmp, strConn);
+                    p.setCategoryId(getIdByCategory(tmp, strConn));
+                }
+
+
+                ps.setString(1, p.getName());
+                ps.setString(2,p.getDescription());
+                ps.setInt(3, p.getCategoryId());
                 ps.setInt(4, id);
                 int rows = ps.executeUpdate();
                 System.out.println("Update rows: " +rows);
