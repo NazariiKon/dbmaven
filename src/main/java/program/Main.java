@@ -23,7 +23,8 @@ public class Main {
                     "4. Змінити\n" +
                     "5. Вийти\n" +
                     "6. Показати всі новини\n" +
-                    "7. Створити новину\n");
+                    "7. Створити новину\n" +
+                    "8. Видалити новину");
             try {
                 menu = Integer.parseInt(in.nextLine());
             }
@@ -59,6 +60,10 @@ public class Main {
                 }
                 case 7: {
                     insertNews(strConn);
+                    break;
+                }
+                case 8: {
+                    deleteNews(strConn);
                     break;
                 }
                 default: {
@@ -314,7 +319,61 @@ public class Main {
             System.out.println("Error connection");
         }
     }
+    private static void deleteNews(String strConn) {
+        try(Connection con = DriverManager.getConnection(strConn, "root", ""))
+        {
+            System.out.println("Connection is good");
+            String query = "DELETE FROM news " +
+                    "WHERE id = ?;";
+            try(PreparedStatement ps = con.prepareStatement(query)) {
+                int id;
+                System.out.print("Enter id: ");
+                id = Integer.parseInt(in.nextLine());
+                News product = getNewsById(strConn, id);
+                if (product == null) {
+                    System.out.println("Такої новини не існує!");
+                    return;
+                }
+                ps.setInt(1, id);
 
+                int rows = ps.executeUpdate();
+                System.out.println("Update rows: " +rows);
+            }
+            catch(Exception ex) {
+                System.out.println("Виникла помилка!");
+            }
+        }
+        catch(Exception ex) {
+            System.out.println("Error connection");
+        }
+    }
+    private static News getNewsById(String strConn, int id) {
+        try(Connection con = DriverManager.getConnection(strConn, "root", ""))
+        {
+            System.out.println("Connection is good");
+            String query = "SELECT * FROM news where id = ?";
+            try(PreparedStatement ps = con.prepareStatement(query)) {
+                ps.setInt(1, id);
+                ResultSet resultSet = ps.executeQuery();
+                if(resultSet.next())
+                {
+                    News p = new News();
+                    p.setId(resultSet.getInt("id"));
+                    p.setName(resultSet.getString("name"));
+                    p.setDescription(resultSet.getString("description"));
+                    p.setCategoryIdId(resultSet.getInt("categoryId"));
+                    return p;
+                }
+            }
+            catch(Exception ex) {
+                System.out.println("Помилка в getNewsById");
+            }
+        }
+        catch(Exception ex) {
+            System.out.println("Error connection");
+        }
+        return null;
+    }
     private static void update(String strConn) {
         try(Connection con = DriverManager.getConnection(strConn, "root", ""))
         {
