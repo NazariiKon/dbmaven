@@ -1,10 +1,13 @@
 package program;
 
+import com.github.javafaker.Faker;
+
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.Locale;
 import java.util.Scanner;
 import java.io.IOException;
 
@@ -15,8 +18,7 @@ public class Main {
     public static void main(String[] args) {
         String strConn = "jdbc:mariadb://localhost:3306/vpd912java";
         int menu = 0;
-        while (menu != 5)
-        {
+        while (menu != 5) {
             System.out.println("1. Показати всі продукти\n" +
                     "2. Створити\n" +
                     "3. Видалити\n" +
@@ -30,8 +32,7 @@ public class Main {
                     "11. Змінити новину");
             try {
                 menu = Integer.parseInt(in.nextLine());
-            }
-            catch(Exception ex) {
+            } catch (Exception ex) {
                 System.out.println("Невірно введенний формат!");
                 break;
             }
@@ -89,20 +90,45 @@ public class Main {
         }
     }
 
-    private static void insert(String strConn) {
-        try(Connection con = DriverManager.getConnection(strConn, "root", ""))
-        {
+    private static void dbSeeder(String strConn, String language, int n) {
+        Faker faker = new Faker(new Locale(language));
+        try (Connection con = DriverManager.getConnection(strConn, "root", "")) {
             System.out.println("Connection is good");
             String query = "INSERT INTO products (name, price, description) " +
                     "VALUES (?, ?, ?);";
-            try(PreparedStatement ps = con.prepareStatement(query)) {
+            try (PreparedStatement ps = con.prepareStatement(query)) {
+                for (int i = 0; i < n; i++) {
+                    ps.setString(1, faker.commerce().productName());
+                    String price = faker.commerce().price();
+                    double decimal = Double.parseDouble(price.replace(",","."));
+                    ps.setBigDecimal(2, new BigDecimal(decimal));
+                    ps.setString(3, faker.commerce().material());
+
+                    int rows = ps.executeUpdate();
+                }
+
+                System.out.println("Таблицю заповнено");
+            } catch (Exception ex) {
+                System.out.println("Помилка в dbSeeder");
+            }
+        } catch (Exception ex) {
+            System.out.println("Error connection");
+        }
+    }
+
+    private static void insert(String strConn) {
+        try (Connection con = DriverManager.getConnection(strConn, "root", "")) {
+            System.out.println("Connection is good");
+            String query = "INSERT INTO products (name, price, description) " +
+                    "VALUES (?, ?, ?);";
+            try (PreparedStatement ps = con.prepareStatement(query)) {
                 String name, description;
                 double price;
                 System.out.print("Enter name: ");
                 name = in.nextLine();
-                if(name != null && !name.isEmpty())
+                if (name != null && !name.isEmpty())
                     ps.setString(1, name);
-                else{
+                else {
                     System.out.println("Невірне ім'я!");
                     return;
                 }
@@ -111,15 +137,14 @@ public class Main {
                 try {
                     price = Double.parseDouble(in.nextLine());
                     ps.setBigDecimal(2, new BigDecimal(price));
-                }
-                catch (Exception ex) {
+                } catch (Exception ex) {
                     System.out.println("Невірна ціна!\n");
                     return;
                 }
 
                 System.out.print("Enter description: ");
                 description = in.nextLine();
-                if(description != null && !description.isEmpty())
+                if (description != null && !description.isEmpty())
                     ps.setString(3, description);
                 else {
                     System.out.println("Невірний опис!");
@@ -127,18 +152,17 @@ public class Main {
                 }
 
                 int rows = ps.executeUpdate();
-                System.out.println("Update rows: " +rows);
-            }
-            catch(Exception ex) {
+                System.out.println("Update rows: " + rows);
+            } catch (Exception ex) {
                 System.out.println("error statment");
             }
-        }
-        catch(Exception ex) {
+        } catch (Exception ex) {
             System.out.println("Error connection");
         }
     }
+
     private static void insertCategory(String category, String strConn) {
-        try(Connection con = DriverManager.getConnection(strConn, "root", "")) {
+        try (Connection con = DriverManager.getConnection(strConn, "root", "")) {
             String query = "INSERT INTO categories(category)" +
                     "VALUES (?);";
             try (PreparedStatement ps = con.prepareStatement(query)) {
@@ -149,31 +173,30 @@ public class Main {
             } catch (Exception ex) {
                 System.out.println("Помилка при створенні категорії");
             }
-        }
-        catch(Exception ex) {
+        } catch (Exception ex) {
             System.out.println("Error connect");
         }
     }
+
     private static void insertNews(String strConn) {
-        try(Connection con = DriverManager.getConnection(strConn, "root", ""))
-        {
+        try (Connection con = DriverManager.getConnection(strConn, "root", "")) {
             System.out.println("Connection is good");
             String query = "INSERT INTO news (name, description, categoryId) " +
                     "VALUES (?, ?, ?);";
-            try(PreparedStatement ps = con.prepareStatement(query)) {
+            try (PreparedStatement ps = con.prepareStatement(query)) {
                 String name, description, category;
                 System.out.print("Enter name: ");
                 name = in.nextLine();
-                if(name != null && !name.isEmpty())
+                if (name != null && !name.isEmpty())
                     ps.setString(1, name);
-                else{
+                else {
                     System.out.println("Невірне ім'я!");
                     return;
                 }
 
                 System.out.print("Enter description: ");
                 description = in.nextLine();
-                if(description != null && !description.isEmpty())
+                if (description != null && !description.isEmpty())
                     ps.setString(2, description);
                 else {
                     System.out.println("Невірний опис!");
@@ -182,59 +205,54 @@ public class Main {
 
                 System.out.print("Enter category: ");
                 category = in.nextLine();
-                if(category != null && !category.isEmpty())
-                {
+                if (category != null && !category.isEmpty()) {
                     Integer categoryId = getIdByCategory(category, strConn);
                     if (categoryId == null) {
                         insertCategory(category, strConn);
                         categoryId = getIdByCategory(category, strConn);
                     }
                     ps.setInt(3, categoryId);
-                }
-                else
-                {
+                } else {
                     System.out.println("Невірна категорія!");
                     return;
                 }
 
 
                 int rows = ps.executeUpdate();
-                System.out.println("Update rows: " +rows);
-            }
-            catch(Exception ex) {
+                System.out.println("Update rows: " + rows);
+            } catch (Exception ex) {
                 System.out.println("error statment");
             }
-        }
-        catch(Exception ex) {
+        } catch (Exception ex) {
             System.out.println("Error connection");
         }
     }
 
     private static void select(String strConn) {
-        try(Connection con = DriverManager.getConnection(strConn, "root", ""))
-        {
+        try (Connection con = DriverManager.getConnection(strConn, "root", "")) {
             System.out.println("Connection is good");
             String query = "SELECT * FROM products";
-            try(PreparedStatement ps = con.prepareStatement(query)) {
+            try (PreparedStatement ps = con.prepareStatement(query)) {
                 ResultSet resultSet = ps.executeQuery();
-                while(resultSet.next())
-                {
-                    System.out.print("{ id = "+ resultSet.getInt("id")+", ");
-                    System.out.print("name = "+ resultSet.getString("name")+", ");
-                    System.out.print("price = "+ resultSet.getBigDecimal("price")+", ");
-                    System.out.println("description = "+ resultSet.getString("description")+" } ");
+                while (resultSet.next()) {
+                    System.out.print("{ id = " + resultSet.getInt("id") + ", ");
+                    System.out.print("name = " + resultSet.getString("name") + ", ");
+                    System.out.print("price = " + resultSet.getBigDecimal("price") + ", ");
+                    System.out.println("description = " + resultSet.getString("description") + " } ");
                 }
-            }
-            catch(Exception ex) {
+
+                if (!resultSet.first())
+                    dbSeeder(strConn, "uk", 100);
+            } catch (Exception ex) {
                 System.out.println("erro statment");
             }
-        }
-        catch(Exception ex) {
+        } catch (Exception ex) {
             System.out.println("Error connection");
         }
     }
+
     private static void selectNews(String strConn) {
-        try(Connection con = DriverManager.getConnection(strConn, "root", "")) {
+        try (Connection con = DriverManager.getConnection(strConn, "root", "")) {
             System.out.println("Connection is good");
             String query = "SELECT * FROM `news`, `categories` WHERE categoryId = `categories`.`id`;";
             try (PreparedStatement ps = con.prepareStatement(query)) {
@@ -246,13 +264,13 @@ public class Main {
                     System.out.println("category = " + resultSet.getString("category") + " }");
                 }
             }
-        }
-        catch(Exception ex) {
+        } catch (Exception ex) {
             System.out.println("Помилка selectNews");
         }
     }
+
     private static void selectCategories(String strConn) {
-        try(Connection con = DriverManager.getConnection(strConn, "root", "")) {
+        try (Connection con = DriverManager.getConnection(strConn, "root", "")) {
             System.out.println("Connection is good");
             String query = "SELECT * FROM categories";
             try (PreparedStatement ps = con.prepareStatement(query)) {
@@ -262,22 +280,19 @@ public class Main {
                     System.out.println("category = " + resultSet.getString("category") + "} ");
                 }
             }
-        }
-        catch(Exception ex) {
+        } catch (Exception ex) {
             System.out.println("Помилка selectNews");
         }
     }
 
     private static Product getById(String strConn, int id) {
-        try(Connection con = DriverManager.getConnection(strConn, "root", ""))
-        {
+        try (Connection con = DriverManager.getConnection(strConn, "root", "")) {
             System.out.println("Connection is good");
             String query = "SELECT * FROM products where id = ?";
-            try(PreparedStatement ps = con.prepareStatement(query)) {
+            try (PreparedStatement ps = con.prepareStatement(query)) {
                 ps.setInt(1, id);
                 ResultSet resultSet = ps.executeQuery();
-                if(resultSet.next())
-                {
+                if (resultSet.next()) {
                     Product p = new Product();
                     p.setId(resultSet.getInt("id"));
                     p.setName(resultSet.getString("name"));
@@ -285,26 +300,23 @@ public class Main {
                     p.setDescription(resultSet.getString("description"));
                     return p;
                 }
-            }
-            catch(Exception ex) {
+            } catch (Exception ex) {
                 System.out.println("erro statment");
             }
-        }
-        catch(Exception ex) {
+        } catch (Exception ex) {
             System.out.println("Error connection");
         }
         return null;
     }
+
     private static News getNewsById(String strConn, int id) {
-        try(Connection con = DriverManager.getConnection(strConn, "root", ""))
-        {
+        try (Connection con = DriverManager.getConnection(strConn, "root", "")) {
             System.out.println("Connection is good");
             String query = "SELECT * FROM news where id = ?";
-            try(PreparedStatement ps = con.prepareStatement(query)) {
+            try (PreparedStatement ps = con.prepareStatement(query)) {
                 ps.setInt(1, id);
                 ResultSet resultSet = ps.executeQuery();
-                if(resultSet.next())
-                {
+                if (resultSet.next()) {
                     News p = new News();
                     p.setId(resultSet.getInt("id"));
                     p.setName(resultSet.getString("name"));
@@ -312,69 +324,60 @@ public class Main {
                     p.setCategoryId(resultSet.getInt("categoryId"));
                     return p;
                 }
-            }
-            catch(Exception ex) {
+            } catch (Exception ex) {
                 System.out.println("Помилка в getNewsById");
             }
-        }
-        catch(Exception ex) {
+        } catch (Exception ex) {
             System.out.println("Error connection");
         }
         return null;
     }
+
     private static Integer getIdByCategory(String category, String strConn) {
-        try(Connection con = DriverManager.getConnection(strConn, "root", ""))
-        {
+        try (Connection con = DriverManager.getConnection(strConn, "root", "")) {
             System.out.println("Connection is good");
             String query = "SELECT * FROM categories where category = ?";
-            try(PreparedStatement ps = con.prepareStatement(query)) {
+            try (PreparedStatement ps = con.prepareStatement(query)) {
                 ps.setString(1, category);
                 ResultSet resultSet = ps.executeQuery();
-                if(resultSet.next())
-                {
+                if (resultSet.next()) {
                     return resultSet.getInt("id");
                 }
-            }
-            catch(Exception ex) {
+            } catch (Exception ex) {
                 System.out.println("Помилка!");
             }
-        }
-        catch(Exception ex) {
+        } catch (Exception ex) {
             System.out.println("Error connection");
         }
         return null;
     }
+
     private static String getCategoryById(int id, String strConn) {
-        try(Connection con = DriverManager.getConnection(strConn, "root", ""))
-        {
+        try (Connection con = DriverManager.getConnection(strConn, "root", "")) {
             System.out.println("Connection is good");
             String query = "SELECT * FROM categories WHERE id = ?";
-            try(PreparedStatement ps = con.prepareStatement(query)) {
+            try (PreparedStatement ps = con.prepareStatement(query)) {
                 ps.setInt(1, id);
                 ResultSet resultSet = ps.executeQuery();
-                if(resultSet.next())
-                {
+                if (resultSet.next()) {
                     String p = resultSet.getString("category");
                     return p;
                 }
-            }
-            catch(Exception ex) {
+            } catch (Exception ex) {
                 System.out.println("Помилка в getCategoryById");
             }
-        }
-        catch(Exception ex) {
+        } catch (Exception ex) {
             System.out.println("Error connection");
         }
         return null;
     }
 
     private static void delete(String strConn) {
-        try(Connection con = DriverManager.getConnection(strConn, "root", ""))
-        {
+        try (Connection con = DriverManager.getConnection(strConn, "root", "")) {
             System.out.println("Connection is good");
             String query = "DELETE FROM products " +
                     "WHERE id = ?;";
-            try(PreparedStatement ps = con.prepareStatement(query)) {
+            try (PreparedStatement ps = con.prepareStatement(query)) {
                 int id;
                 System.out.print("Enter id: ");
                 id = Integer.parseInt(in.nextLine());
@@ -386,23 +389,21 @@ public class Main {
                 ps.setInt(1, id);
 
                 int rows = ps.executeUpdate();
-                System.out.println("Update rows: " +rows);
-            }
-            catch(Exception ex) {
+                System.out.println("Update rows: " + rows);
+            } catch (Exception ex) {
                 System.out.println("Виникла помилка!");
             }
-        }
-        catch(Exception ex) {
+        } catch (Exception ex) {
             System.out.println("Error connection");
         }
     }
+
     private static void deleteNews(String strConn) {
-        try(Connection con = DriverManager.getConnection(strConn, "root", ""))
-        {
+        try (Connection con = DriverManager.getConnection(strConn, "root", "")) {
             System.out.println("Connection is good");
             String query = "DELETE FROM news " +
                     "WHERE id = ?;";
-            try(PreparedStatement ps = con.prepareStatement(query)) {
+            try (PreparedStatement ps = con.prepareStatement(query)) {
                 int id;
                 System.out.print("Enter id: ");
                 id = Integer.parseInt(in.nextLine());
@@ -414,23 +415,21 @@ public class Main {
                 ps.setInt(1, id);
 
                 int rows = ps.executeUpdate();
-                System.out.println("Update rows: " +rows);
-            }
-            catch(Exception ex) {
+                System.out.println("Update rows: " + rows);
+            } catch (Exception ex) {
                 System.out.println("Виникла помилка!");
             }
-        }
-        catch(Exception ex) {
+        } catch (Exception ex) {
             System.out.println("Error connection");
         }
     }
+
     private static void deleteCategory(String strConn) {
-        try(Connection con = DriverManager.getConnection(strConn, "root", ""))
-        {
+        try (Connection con = DriverManager.getConnection(strConn, "root", "")) {
             System.out.println("Connection is good");
             String query = "DELETE FROM categories " +
                     "WHERE id = ?;";
-            try(PreparedStatement ps = con.prepareStatement(query)) {
+            try (PreparedStatement ps = con.prepareStatement(query)) {
                 int id;
                 System.out.print("Enter id: ");
                 id = Integer.parseInt(in.nextLine());
@@ -442,107 +441,98 @@ public class Main {
                 ps.setInt(1, id);
 
                 int rows = ps.executeUpdate();
-                System.out.println("Update rows: " +rows);
-            }
-            catch(Exception ex) {
+                System.out.println("Update rows: " + rows);
+            } catch (Exception ex) {
                 System.out.println("Виникла помилка!");
             }
-        }
-        catch(Exception ex) {
+        } catch (Exception ex) {
             System.out.println("Error connection");
         }
     }
 
     private static void update(String strConn) {
-        try(Connection con = DriverManager.getConnection(strConn, "root", ""))
-        {
+        try (Connection con = DriverManager.getConnection(strConn, "root", "")) {
             System.out.println("Connection is good");
             String query = "UPDATE products SET name = ?, price=?, description=? " +
                     "WHERE id = ?;";
-            try(PreparedStatement ps = con.prepareStatement(query)) {
+            try (PreparedStatement ps = con.prepareStatement(query)) {
                 int id;
                 System.out.print("Enter id: ");
                 id = Integer.parseInt(in.nextLine());
                 Product p = getById(strConn, id);
                 System.out.print("Enter new name: ");
                 String tmp = in.nextLine();
-                if(tmp != null && !tmp.isEmpty()) {
+                if (tmp != null && !tmp.isEmpty()) {
                     p.setName(tmp);
                 }
                 System.out.print("Enter price: ");
                 tmp = in.nextLine();
-                if(tmp != null && !tmp.isEmpty()) {
+                if (tmp != null && !tmp.isEmpty()) {
                     try {
                         p.setPrice(Double.parseDouble(tmp));
-                    }
-                    catch(Exception ex){
+                    } catch (Exception ex) {
                         System.out.println("Невірна ціна!");
                         return;
                     }
                 }
                 System.out.print("Enter description: ");
                 tmp = in.nextLine();
-                if(tmp != null && !tmp.isEmpty()) {
+                if (tmp != null && !tmp.isEmpty()) {
                     p.setDescription(tmp);
                 }
 
                 ps.setString(1, p.getName());
                 ps.setDouble(2, p.getPrice());
-                ps.setString(3,p.getDescription());
+                ps.setString(3, p.getDescription());
                 ps.setInt(4, id);
                 int rows = ps.executeUpdate();
-                System.out.println("Update rows: " +rows);
-            }
-            catch(Exception ex) {
+                System.out.println("Update rows: " + rows);
+            } catch (Exception ex) {
                 System.out.println("Помилка!");
             }
-        }
-        catch(Exception ex) {
+        } catch (Exception ex) {
             System.out.println("Error connection");
         }
     }
+
     private static void updateNews(String strConn) {
-        try(Connection con = DriverManager.getConnection(strConn, "root", ""))
-        {
+        try (Connection con = DriverManager.getConnection(strConn, "root", "")) {
             System.out.println("Connection is good");
             String query = "UPDATE news SET name = ?, description = ?, categoryId = ? " +
                     "WHERE id = ?;";
-            try(PreparedStatement ps = con.prepareStatement(query)) {
+            try (PreparedStatement ps = con.prepareStatement(query)) {
                 int id;
                 System.out.print("Enter id: ");
                 id = Integer.parseInt(in.nextLine());
                 News p = getNewsById(strConn, id);
                 System.out.print("Enter new name: ");
                 String tmp = in.nextLine();
-                if(tmp != null && !tmp.isEmpty())
+                if (tmp != null && !tmp.isEmpty())
                     p.setName(tmp);
 
                 System.out.print("Enter new description: ");
                 tmp = in.nextLine();
-                if(tmp != null && !tmp.isEmpty())
+                if (tmp != null && !tmp.isEmpty())
                     p.setDescription(tmp);
 
                 System.out.print("Enter new category: ");
                 tmp = in.nextLine();
-                if(tmp != null && !tmp.isEmpty())
-                {
+                if (tmp != null && !tmp.isEmpty()) {
                     insertCategory(tmp, strConn);
                     p.setCategoryId(getIdByCategory(tmp, strConn));
                 }
 
 
                 ps.setString(1, p.getName());
-                ps.setString(2,p.getDescription());
+                ps.setString(2, p.getDescription());
                 ps.setInt(3, p.getCategoryId());
                 ps.setInt(4, id);
                 int rows = ps.executeUpdate();
-                System.out.println("Update rows: " +rows);
-            }
-            catch(Exception ex) {
+                System.out.println("Update rows: " + rows);
+            } catch (Exception ex) {
                 System.out.println("Помилка!");
             }
-        }
-        catch(Exception ex) {
+        } catch (Exception ex) {
             System.out.println("Error connection");
         }
     }
